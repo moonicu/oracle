@@ -1,3 +1,5 @@
 joblib
 matplotlib
 scikit-learn
+xgboost
+lightgbm
