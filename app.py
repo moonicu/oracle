@@ -9,7 +9,10 @@ model_save_dir = 'saved_models'
 model_names = ['RandomForest', 'XGBoost', 'LightGBM']
 
 # 변수 목록
-x_columns = ['gaw', 'gawd', 'gad', 'bwei', 'sex',
+display_columns = ['gaw', 'gawd'] + ['gad', 'bwei', 'sex',
+             'mage', 'gran', 'parn', 'amni', 'mulg', 'bir', 'prep', 'dm', 'htn', 'chor', 'prom',
+             'ster', 'sterp', 'sterd', 'atbyn', 'delm']
+x_columns = ['gad', 'bwei', 'sex',
              'mage', 'gran', 'parn', 'amni', 'mulg', 'bir', 'prep', 'dm', 'htn', 'chor', 'prom',
              'ster', 'sterp', 'sterd', 'atbyn', 'delm']
 
