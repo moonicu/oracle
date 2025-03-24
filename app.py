@@ -119,7 +119,7 @@ if st.button("결과 예측"):
         input_df.to_excel(writer, sheet_name='입력 데이터', startrow=3, index=False)
 
         highlight_df.to_excel(writer, sheet_name='예측 결과')
-        writer.save()
+        
         processed_data = output.getvalue()
 
     st.download_button(
