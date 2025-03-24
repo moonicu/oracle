@@ -9,10 +9,7 @@ model_save_dir = 'saved_models'
 model_names = ['RandomForest', 'XGBoost', 'LightGBM']
 
 # 변수 목록
-display_columns = ['gaw', 'gawd'] + ['gad', 'bwei', 'sex',
-             'mage', 'gran', 'parn', 'amni', 'mulg', 'bir', 'prep', 'dm', 'htn', 'chor', 'prom',
-             'ster', 'sterp', 'sterd', 'atbyn', 'delm']
-x_columns = ['gad', 'bwei', 'sex',
+x_columns = ['gaw', 'gawd', 'gad', 'bwei', 'sex',
              'mage', 'gran', 'parn', 'amni', 'mulg', 'bir', 'prep', 'dm', 'htn', 'chor', 'prom',
              'ster', 'sterp', 'sterd', 'atbyn', 'delm']
 
@@ -80,8 +77,8 @@ if st.button("결과 예측"):
                         X_input = new_X_data
 
                     pred_proba = model.predict_proba(X_input)
-                    pred_percent = pred_proba[:, 1] * 100
-                    result_rows.append({'Target': y_col, 'Model': model_name, 'Probability': pred_percent[0]})
+                    pred_percent = round(pred_proba[:, 1] * 100, 2)
+                    result_rows.append({'Target': y_col, 'Model': model_name, 'Probability': pred_percent})
             except Exception:
                 result_rows.append({'Target': y_col, 'Model': model_name, 'Probability': None})
 
@@ -89,17 +86,22 @@ if st.button("결과 예측"):
     pivot_result = df_result.pivot(index='Target', columns='Model', values='Probability')
     pivot_result = pivot_result[model_names]
 
+    # re-order by y_display_names
+    pivot_result = pivot_result.reindex(y_columns)
+
     # Highlight best model per target
     highlight_df = pivot_result.copy()
     for idx in highlight_df.index:
         row = highlight_df.loc[idx]
-        numeric_row = row.apply(lambda x: float(x.replace('%', '')) if isinstance(x, str) and '%' in x else None)
-        if numeric_row.notnull().any():
-            max_idx = numeric_row.idxmax()
-            highlight_df.at[idx, max_idx] = f"⭐ {row[max_idx]}"
+        if row.notnull().any():
+            max_idx = row.idxmax()
+            highlight_df.at[idx, max_idx] = f"⭐ {row[max_idx]:.2f}%"
 
-    pivot_result.index = pivot_result.index.map(lambda x: y_display_names.get(x, x))
-    highlight_df.index = pivot_result.index
+    # format percentages
+    highlight_df = highlight_df.applymap(lambda x: f"{x:.2f}%" if isinstance(x, (int, float)) else x)
+
+    # apply display names
+    highlight_df.index = highlight_df.index.map(lambda x: y_display_names.get(x, x))
 
     st.dataframe(highlight_df, height=900)
 
