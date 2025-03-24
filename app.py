@@ -12,9 +12,9 @@ model_names = ['RandomForest', 'XGBoost', 'LightGBM']
 display_columns = ['gaw', 'gawd'] + ['gad', 'bwei', 'sex',
              'mage', 'gran', 'parn', 'amni', 'mulg', 'bir', 'prep', 'dm', 'htn', 'chor', 'prom',
              'ster', 'sterp', 'sterd', 'atbyn', 'delm']
-x_columns = ['gad', 'bwei', 'sex',
-             'mage', 'gran', 'parn', 'amni', 'mulg', 'bir', 'prep', 'dm', 'htn', 'chor', 'prom',
-             'ster', 'sterp', 'sterd', 'atbyn', 'delm']
+
+x_columns = ['mage', 'gran', 'parn', 'amni', 'mulg', 'bir', 'prep', 'dm', 'htn', 'chor', 
+             'prom', 'ster', 'sterp', 'sterd', 'atbyn', 'delm', 'gad', 'sex', 'bwei']
 
 y_columns = ['resu', 'resuo', 'resup', 'resui', 'resuh', 'resue', 'resuc', 'rds', 'sft', 'sftup', 'sftw',
              'als', 'mph', 'ph', 'bpdyn', 'bdp', 'pdad', 'acl', 'lbp', 'inhg', 'phh', 'pvl', 'ibif', 'seps', 'meni',
@@ -62,8 +62,8 @@ sterd = st.selectbox("스테로이드 7일 경과 (sterd)", [0, 1])
 atbyn = st.selectbox("항생제 사용 여부 (atbyn)", [0, 1])
 delm = st.selectbox("분만 방식 (delm)", [0, 1], format_func=lambda x: "자연" if x == 0 else "제왕절개")
 
-new_X_data = pd.DataFrame([[gad, bwei, sex, mage, gran, parn, amni, mulg, bir,
-                            prep, dm, htn, chor, prom, ster, sterp, sterd, atbyn, delm]], columns=x_columns)
+new_X_data = pd.DataFrame([[mage, gran, parn, amni, mulg, bir, prep, dm, htn, chor, 
+                            prom, ster, sterp, sterd, atbyn, delm, gad, sex, bwei]], columns=x_columns)
 
 if st.button("결과 예측"):
     result_rows = []
