@@ -12,8 +12,7 @@ model_names = ['RandomForest', 'XGBoost', 'LightGBM']
 display_columns = ['gaw', 'gawd'] + ['gad', 'bwei', 'sex',
              'mage', 'gran', 'parn', 'amni', 'mulg', 'bir', 'prep', 'dm', 'htn', 'chor', 'prom',
              'ster', 'sterp', 'sterd', 'atbyn', 'delm']
-
-x_columns = ['gaw', 'gawd', 'gad', 'bwei', 'sex',
+x_columns = ['gad', 'bwei', 'sex',
              'mage', 'gran', 'parn', 'amni', 'mulg', 'bir', 'prep', 'dm', 'htn', 'chor', 'prom',
              'ster', 'sterp', 'sterd', 'atbyn', 'delm']
 
