@@ -9,6 +9,10 @@ model_save_dir = 'saved_models'
 model_names = ['RandomForest', 'XGBoost', 'LightGBM']
 
 # 변수 목록
+display_columns = ['gaw', 'gawd'] + ['gad', 'bwei', 'sex',
+             'mage', 'gran', 'parn', 'amni', 'mulg', 'bir', 'prep', 'dm', 'htn', 'chor', 'prom',
+             'ster', 'sterp', 'sterd', 'atbyn', 'delm']
+
 x_columns = ['gaw', 'gawd', 'gad', 'bwei', 'sex',
              'mage', 'gran', 'parn', 'amni', 'mulg', 'bir', 'prep', 'dm', 'htn', 'chor', 'prom',
              'ster', 'sterp', 'sterd', 'atbyn', 'delm']
@@ -59,7 +63,7 @@ sterd = st.selectbox("스테로이드 7일 경과 (sterd)", [0, 1])
 atbyn = st.selectbox("항생제 사용 여부 (atbyn)", [0, 1])
 delm = st.selectbox("분만 방식 (delm)", [0, 1], format_func=lambda x: "자연" if x == 0 else "제왕절개")
 
-new_X_data = pd.DataFrame([[gaw, gawd, gad, bwei, sex, mage, gran, parn, amni, mulg, bir,
+new_X_data = pd.DataFrame([[gad, bwei, sex, mage, gran, parn, amni, mulg, bir,
                             prep, dm, htn, chor, prom, ster, sterp, sterd, atbyn, delm]], columns=x_columns)
 
 if st.button("결과 예측"):
@@ -70,20 +74,35 @@ if st.button("결과 예측"):
             try:
                 model = joblib.load(model_filename)
                 if hasattr(model, "predict_proba"):
-                    pred_proba = model.predict_proba(new_X_data)
+                    if model_name == "XGBoost" and hasattr(model, 'get_booster'):
+                        model_features = model.get_booster().feature_names
+                        X_input = new_X_data[model_features]
+                    else:
+                        X_input = new_X_data
+
+                    pred_proba = model.predict_proba(X_input)
                     pred_percent = pred_proba[:, 1] * 100
                     result_rows.append({'Target': y_col, 'Model': model_name, 'Probability': pred_percent[0]})
-            except FileNotFoundError:
+            except Exception:
                 result_rows.append({'Target': y_col, 'Model': model_name, 'Probability': None})
 
     df_result = pd.DataFrame(result_rows)
     pivot_result = df_result.pivot(index='Target', columns='Model', values='Probability')
     pivot_result = pivot_result[model_names]
 
-    pivot_result.index = pivot_result.index.map(lambda x: y_display_names.get(x, x))
-    pivot_result = pivot_result.applymap(lambda x: f"{x:.2f}%" if pd.notnull(x) else "N/A")
+    # Highlight best model per target
+    highlight_df = pivot_result.copy()
+    for idx in highlight_df.index:
+        row = highlight_df.loc[idx]
+        numeric_row = row.apply(lambda x: float(x.replace('%', '')) if isinstance(x, str) and '%' in x else None)
+        if numeric_row.notnull().any():
+            max_idx = numeric_row.idxmax()
+            highlight_df.at[idx, max_idx] = f"⭐ {row[max_idx]}"
 
-    st.dataframe(pivot_result, height=900)
+    pivot_result.index = pivot_result.index.map(lambda x: y_display_names.get(x, x))
+    highlight_df.index = pivot_result.index
+
+    st.dataframe(highlight_df, height=900)
 
     # Excel Export
     output = io.BytesIO()
@@ -91,11 +110,11 @@ if st.button("결과 예측"):
         meta_info = pd.DataFrame({'항목': ['작성일자'], '값': [datetime.today().strftime('%Y-%m-%d')]})
         meta_info.to_excel(writer, sheet_name='입력 데이터', startrow=0, index=False)
 
-        input_df = new_X_data.T.reset_index()
-        input_df.columns = ['입력 변수명', '입력값']
+        display_data = [gaw, gawd] + new_X_data.iloc[0].tolist()
+        input_df = pd.DataFrame({'입력 변수명': display_columns, '입력값': display_data})
         input_df.to_excel(writer, sheet_name='입력 데이터', startrow=3, index=False)
 
-        pivot_result.to_excel(writer, sheet_name='예측 결과')
+        highlight_df.to_excel(writer, sheet_name='예측 결과')
         writer.save()
         processed_data = output.getvalue()
 
