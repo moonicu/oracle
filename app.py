@@ -41,7 +41,7 @@ st.header("입력 데이터")
 gaw = st.number_input("임신 주수 (gaw, 주)", min_value=20, max_value=50, value=28)
 gawd = st.number_input("임신 일수 (gawd, 일)", min_value=0, max_value=6, value=4)
 gad = (gaw * 7) + gawd
-bwei = st.number_input("출생 체중 (bwei, g)", min_value=200, max_value=1500, value=1000)
+bwei = st.number_input("출생 체중 (bwei, g)", min_value=200, max_value=2000, value=1000)
 sex = st.selectbox("성별 (sex)", [0, 1], format_func=lambda x: "남아" if x == 0 else "여아")
 
 # 나머지 입력
