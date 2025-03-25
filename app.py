@@ -94,7 +94,7 @@ if st.button("결과 예측"):
                         X_input = new_X_data
 
                     pred_proba = model.predict_proba(X_input)
-                    pred_percent = round(pred_proba[:, 1] * 100, 2)
+                    pred_percent = round(float(pred_proba[0, 1]) * 100, 2)
                     result_rows.append({'Target': y_col, 'Model': model_name, 'Probability': pred_percent})
                 else:
                     result_rows.append({'Target': y_col, 'Model': model_name, 'Probability': None})
