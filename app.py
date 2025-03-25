@@ -38,29 +38,35 @@ y_display_names = {
 st.title("NICU 환자 예측 모델")
 
 st.header("입력 데이터")
-gaw = st.number_input("임신 주수 (gaw, 주)", min_value=20, max_value=50, value=28)
-gawd = st.number_input("임신 일수 (gawd, 일)", min_value=0, max_value=6, value=4)
-gad = (gaw * 7) + gawd
-bwei = st.number_input("출생 체중 (bwei, g)", min_value=200, max_value=3000, value=1000)
-sex = st.selectbox("성별 (sex)", [0, 1], format_func=lambda x: "남아" if x == 0 else "여아")
 
-# 나머지 입력
-mage = st.number_input("산모 나이 (mage)", min_value=18, max_value=50, value=30)
-gran = st.number_input("임신력 (gran)", min_value=0, max_value=10, value=1)
-parn = st.number_input("출산력 (parn)", min_value=0, max_value=10, value=1)
-amni = st.selectbox("양수 상태 (amni)", [0, 1], format_func=lambda x: "정상" if x == 0 else "비정상")
-mulg = st.selectbox("다태아 여부 (mulg)", [1, 2], format_func=lambda x: "단태" if x == 1 else "다태")
-bir = st.number_input("출생 순서 (bir)", min_value=1, max_value=10, value=1)
-prep = st.selectbox("임신과정 (prep)", [0, 1], format_func=lambda x: "자연임신" if x == 0 else "IVF")
-dm = st.selectbox("당뇨병 (dm)", [0, 1], format_func=lambda x: "없음" if x == 0 else "있음")
-htn = st.selectbox("고혈압 (htn)", [0, 1], format_func=lambda x: "없음" if x == 0 else "있음")
-chor = st.selectbox("조직학적 융모양막염 (chor)", [0, 1], format_func=lambda x: "없음" if x == 0 else "있음")
-prom = st.selectbox("조기 양막 파열 (prom)", [0, 1], format_func=lambda x: "없음" if x == 0 else "있음")
-ster = st.selectbox("스테로이드 사용 여부 (ster)", [0, 1])
-sterp = st.selectbox("스테로이드 완료 여부 (sterp)", [0, 1])
-sterd = st.selectbox("스테로이드 7일 경과 (sterd)", [0, 1])
-atbyn = st.selectbox("항생제 사용 여부 (atbyn)", [0, 1])
-delm = st.selectbox("분만 방식 (delm)", [0, 1], format_func=lambda x: "자연" if x == 0 else "제왕절개")
+gaw = st.number_input("임신 주수", min_value=20, max_value=50, value=28)
+gawd = st.number_input("임신 일수", min_value=0, max_value=6, value=4)
+gad = gaw * 7 + gawd
+bwei = st.number_input("출생 체중 (g)", min_value=200, max_value=5000, value=1000)
+sex = st.selectbox("성별", [1, 2, 3], format_func=lambda x: {1: "남아", 2: "여아", 3: "ambiguous"}.get(x))
+
+mage = st.number_input("산모 나이", min_value=15, max_value=99, value=30)
+gran = st.number_input("임신력 (gravida)", min_value=0, max_value=10, value=0)
+parn = st.number_input("출산력 (parity)", min_value=0, max_value=10, value=0)
+
+amni = st.selectbox("양수량", [1, 2, 3, 4], format_func=lambda x: {1: "정상", 2: "과소증", 3: "과다증", 4: "모름"}.get(x))
+mulg = st.selectbox("다태 정보", [1, 2, 3, 4], format_func=lambda x: {1: "Singleton", 2: "Twin", 3: "Triplet", 4: "Quad 이상"}.get(x))
+bir = st.selectbox("출생 순서", [0, 1, 2, 3, 4], format_func=lambda x: {0: "단태", 1: "1st", 2: "2nd", 3: "3rd", 4: "4th 이상"}.get(x))
+
+prep = st.selectbox("임신과정", [1, 2], format_func=lambda x: {1: "자연임신", 2: "IVF"}.get(x))
+dm = st.selectbox("당뇨", [1, 2, 3], format_func=lambda x: {1: "없음", 2: "GDM", 3: "Overt DM"}.get(x))
+htn = st.selectbox("고혈압", [1, 2, 3], format_func=lambda x: {1: "없음", 2: "PIH", 3: "Chronic HTN"}.get(x))
+chor = st.selectbox("융모양막염", [1, 2, 3], format_func=lambda x: {1: "없음", 2: "있음", 3: "모름"}.get(x))
+prom = st.selectbox("조기 양막 파열", [1, 2, 3], format_func=lambda x: {1: "없음", 2: "있음", 3: "모름"}.get(x))
+ster = st.selectbox("산전스테로이드 투여 여부", [1, 2, 3], format_func=lambda x: {1: "없음", 2: "있음", 3: "모름"}.get(x))
+sterp = st.selectbox("스테로이드 완료 여부 (sterp)", [0, 1, 2, 3],
+    format_func=lambda x: ["미투여", "미완료", "완료", "확인 불가"][x],
+    help="분만 1주일 이내에 정해진 간격으로 정해진 코스의 스테로이드 치료를 모두 완료한 경우 완료(betamethasone 2회, dexamethasone 4회)"
+)
+
+sterd = st.selectbox("스테로이드 약제", [0, 1, 2, 4], format_func=lambda x: {0: "미투여", 1: "Dexamethasone", 2: "Betamethasone", 4: "모름"}.get(x))
+atbyn = st.selectbox("항생제 사용", [1, 2], format_func=lambda x: {1: "없음", 2: "있음"}.get(x))
+delm = st.selectbox("분만 방식 (delm)", [1, 2], format_func=lambda x: {1: "질식분만", 2: "제왕절개"}.get(x))
 
 new_X_data = pd.DataFrame([[mage, gran, parn, amni, mulg, bir, prep, dm, htn, chor, 
                             prom, ster, sterp, sterd, atbyn, delm, gad, sex, bwei]], columns=x_columns)
