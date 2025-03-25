@@ -75,7 +75,7 @@ regression_targets = ['invfpod', 'stday', 'dcdwt']
 
 
 # 환자 식별자 입력
-patient_id = st.text_input("환자정보 (최대 10자)", max_chars=10)
+patient_id = st.text_input("환자정보 (최대 10자), 추출시 파일명", max_chars=10)
 
 if st.button("결과 예측"):
     result_rows = []
