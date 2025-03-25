@@ -75,16 +75,23 @@ regression_targets = ['invfpod', 'stday', 'dcdwt']
 
 if st.button("결과 예측"):
     result_rows = []
+
     for model_name in model_names:
         for y_col in y_columns:
             if y_col in regression_targets:
-                continue  # 회귀 결과는 제외
+                continue  # 회귀 변수 제외
 
             model_filename = os.path.join(model_save_dir, f"{model_name}_{y_col}.pkl")
+            if not os.path.exists(model_filename):
+                st.warning(f"❗ 모델 파일 없음: {model_filename}")
+                result_rows.append({'Target': y_col, 'Model': model_name, 'Probability (%)': None})
+                continue
+
             try:
                 model = joblib.load(model_filename)
 
                 if hasattr(model, "predict_proba"):
+                    # XGBoost: feature 이름 기반 정렬
                     if model_name == "XGBoost" and hasattr(model, 'get_booster'):
                         model_features = model.get_booster().feature_names
                         X_input = new_X_data[model_features]
@@ -92,33 +99,26 @@ if st.button("결과 예측"):
                         X_input = new_X_data
 
                     pred_proba = model.predict_proba(X_input)
-                    pred_percent = round(pred_proba[:, 1] * 100, 2)
-                    result_rows.append({
-                        'Target': y_col,
-                        'Model': model_name,
-                        'Probability (%)': pred_percent
-                    })
-            except Exception:
-                result_rows.append({
-                    'Target': y_col,
-                    'Model': model_name,
-                    'Probability (%)': None
-                })
+                    pred_percent = round(float(pred_proba[0, 1]) * 100, 2)
+                    result_rows.append({'Target': y_col, 'Model': model_name, 'Probability (%)': pred_percent})
+                else:
+                    result_rows.append({'Target': y_col, 'Model': model_name, 'Probability (%)': None})
 
+            except Exception as e:
+                st.warning(f"[{model_name} - {y_col}] 예측 실패: {e}")
+                result_rows.append({'Target': y_col, 'Model': model_name, 'Probability (%)': None})
+
+    # 결과 정리 및 출력
     df_result = pd.DataFrame(result_rows)
     pivot_result = df_result.pivot(index='Target', columns='Model', values='Probability (%)')
     pivot_result = pivot_result[model_names]
     pivot_result = pivot_result.reindex([y for y in y_columns if y not in regression_targets])
-
-    # display name 적용
     pivot_result.index = pivot_result.index.map(lambda x: y_display_names.get(x, x))
-
     st.dataframe(pivot_result, height=900)
 
-    # CSV 다운로드
+    # CSV 파일 생성 및 다운로드 버튼
     csv_buffer = io.StringIO()
     pivot_result.to_csv(csv_buffer, encoding='utf-8-sig')  # 한글 깨짐 방지
-
     st.download_button(
         label="예측 결과 CSV 다운로드",
         data=csv_buffer.getvalue(),
