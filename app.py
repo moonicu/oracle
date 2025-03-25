@@ -71,74 +71,57 @@ delm = st.selectbox("분만 방식 (delm)", [1, 2], format_func=lambda x: {1: "�
 new_X_data = pd.DataFrame([[mage, gran, parn, amni, mulg, bir, prep, dm, htn, chor, 
                             prom, ster, sterp, sterd, atbyn, delm, gad, sex, bwei]], columns=x_columns)
 
+regression_targets = ['invfpod', 'stday', 'dcdwt']
+
 if st.button("결과 예측"):
     result_rows = []
-
     for model_name in model_names:
         for y_col in y_columns:
-            model_filename = os.path.join(model_save_dir, f"{model_name}_{y_col}.pkl")
-            if not os.path.exists(model_filename):
-                result_rows.append({'Target': y_col, 'Model': model_name, 'Result': "❌ 모델 없음"})
-                continue
+            if y_col in regression_targets:
+                continue  # 회귀 결과는 제외
 
+            model_filename = os.path.join(model_save_dir, f"{model_name}_{y_col}.pkl")
             try:
                 model = joblib.load(model_filename)
-                is_regression = y_col in ['invfpod', 'dcdwt', 'stday']
 
-                # 회귀 모델 처리
-                if is_regression:
-                    pred_value = model.predict(new_X_data)[0]
-                    result_rows.append({
-                        'Target': y_col,
-                        'Model': model_name,
-                        'Result': round(float(pred_value), 2)
-                    })
-
-                # 분류 모델 처리
-                elif hasattr(model, "predict_proba"):
-                    X_input = new_X_data
+                if hasattr(model, "predict_proba"):
                     if model_name == "XGBoost" and hasattr(model, 'get_booster'):
                         model_features = model.get_booster().feature_names
                         X_input = new_X_data[model_features]
+                    else:
+                        X_input = new_X_data
 
                     pred_proba = model.predict_proba(X_input)
-                    pred_percent = round(pred_proba[:, 1][0] * 100, 2)
+                    pred_percent = round(pred_proba[:, 1] * 100, 2)
                     result_rows.append({
                         'Target': y_col,
                         'Model': model_name,
-                        'Result': f"{pred_percent:.2f}%"
+                        'Probability (%)': pred_percent
                     })
+            except Exception:
+                result_rows.append({
+                    'Target': y_col,
+                    'Model': model_name,
+                    'Probability (%)': None
+                })
 
-                else:
-                    result_rows.append({'Target': y_col, 'Model': model_name, 'Result': "❌ 예측 불가"})
-
-            except Exception as e:
-                result_rows.append({'Target': y_col, 'Model': model_name, 'Result': f"❌ 오류: {str(e)}"})
-
-    # 데이터프레임 변환
     df_result = pd.DataFrame(result_rows)
-    pivot_result = df_result.pivot(index='Target', columns='Model', values='Result')
-    pivot_result = pivot_result.reindex(y_columns)
+    pivot_result = df_result.pivot(index='Target', columns='Model', values='Probability (%)')
+    pivot_result = pivot_result[model_names]
+    pivot_result = pivot_result.reindex([y for y in y_columns if y not in regression_targets])
+
+    # display name 적용
     pivot_result.index = pivot_result.index.map(lambda x: y_display_names.get(x, x))
 
     st.dataframe(pivot_result, height=900)
 
-    # 📥 엑셀 내보내기
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        meta_info = pd.DataFrame({'항목': ['작성일자'], '값': [datetime.today().strftime('%Y-%m-%d')]})
-        meta_info.to_excel(writer, sheet_name='입력 데이터', startrow=0, index=False)
-
-        display_data = [gaw, gawd] + new_X_data.iloc[0].tolist()
-        input_df = pd.DataFrame({'입력 변수명': display_columns, '입력값': display_data})
-        input_df.to_excel(writer, sheet_name='입력 데이터', startrow=3, index=False)
-
-        pivot_result.to_excel(writer, sheet_name='예측 결과')
-        writer.save()  # 안전하게 닫기
+    # CSV 다운로드
+    csv_buffer = io.StringIO()
+    pivot_result.to_csv(csv_buffer, encoding='utf-8-sig')  # 한글 깨짐 방지
 
     st.download_button(
-        label="입력값 + 예측결과 엑셀 다운로드",
-        data=output.getvalue(),
-        file_name="prediction_output.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        label="예측 결과 CSV 다운로드",
+        data=csv_buffer.getvalue(),
+        file_name='prediction_results.csv',
+        mime='text/csv'
     )
