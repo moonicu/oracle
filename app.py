@@ -13,7 +13,7 @@ display_columns = ['gaw', 'gawd'] + ['gad', 'bwei', 'sex',
              'mage', 'gran', 'parn', 'amni', 'mulg', 'bir', 'prep', 'dm', 'htn', 'chor', 'prom',
              'ster', 'sterp', 'sterd', 'atbyn', 'delm']
 
-x_columns = ['mage', 'gran', 'parn', 'amni', 'mulg', 'bir', 'prep', 'dm', 'htn', 'chor', 
+x_columns = ['mage', 'gran', 'parn', 'amni', 'mulg', 'bir', 'prep', 'dm', 'htn', 'chor',
              'prom', 'ster', 'sterp', 'sterd', 'atbyn', 'delm', 'gad', 'sex', 'bwei']
 
 y_columns = ['resu', 'resuo', 'resup', 'resui', 'resuh', 'resue', 'resuc', 'rds', 'sft', 'sftup', 'sftw',
@@ -68,13 +68,13 @@ sterd = st.selectbox("스테로이드 약제", [0, 1, 2, 4], format_func=lambda 
 atbyn = st.selectbox("항생제 사용", [1, 2], format_func=lambda x: {1: "없음", 2: "있음"}.get(x))
 delm = st.selectbox("분만 방식 (delm)", [1, 2], format_func=lambda x: {1: "질식분만", 2: "제왕절개"}.get(x))
 
-new_X_data = pd.DataFrame([[mage, gran, parn, amni, mulg, bir, prep, dm, htn, chor, 
+new_X_data = pd.DataFrame([[mage, gran, parn, amni, mulg, bir, prep, dm, htn, chor,
                             prom, ster, sterp, sterd, atbyn, delm, gad, sex, bwei]], columns=x_columns)
 
 regression_targets = ['invfpod', 'stday', 'dcdwt']
 
 
-# ✅ 환자정보 입력
+# 환자 식별자 입력
 patient_id = st.text_input("환자정보 (최대 10자)", max_chars=10)
 
 if st.button("결과 예측"):
@@ -95,7 +95,6 @@ if st.button("결과 예측"):
                 model = joblib.load(model_filename)
 
                 if hasattr(model, "predict_proba"):
-                    # XGBoost는 feature 정렬 필요
                     if model_name == "XGBoost" and hasattr(model, 'get_booster'):
                         model_features = model.get_booster().feature_names
                         X_input = new_X_data[model_features]
@@ -104,8 +103,9 @@ if st.button("결과 예측"):
 
                     pred_proba = model.predict_proba(X_input)
                     pred_percent = round(float(pred_proba[0, 1]) * 100, 2)
-                    pred_percent_str = f"{pred_percent:.2f}%"
-                    result_rows.append({'Target': y_col, 'Model': model_name, 'Probability (%)': pred_percent_str})
+                    result_rows.append({
+                        'Target': y_col, 'Model': model_name, 'Probability (%)': f"{pred_percent:.2f}%"
+                    })
                 else:
                     result_rows.append({'Target': y_col, 'Model': model_name, 'Probability (%)': None})
 
@@ -113,41 +113,36 @@ if st.button("결과 예측"):
                 st.warning(f"[{model_name} - {y_col}] 예측 실패: {e}")
                 result_rows.append({'Target': y_col, 'Model': model_name, 'Probability (%)': None})
 
-    # 테이블 정리 및 표시
+    # 결과 정리
     df_result = pd.DataFrame(result_rows)
     pivot_result = df_result.pivot(index='Target', columns='Model', values='Probability (%)')
     pivot_result = pivot_result[model_names]
     pivot_result = pivot_result.reindex([y for y in y_columns if y not in regression_targets])
     pivot_result.index = pivot_result.index.map(lambda x: y_display_names.get(x, x))
+
+    # Streamlit 화면에 결과 표시
     st.dataframe(pivot_result, height=900)
 
-    # ✅ CSV 저장 (입력값 + 예측 결과), 입력값 따로 추출
+    # CSV 저장
     if patient_id:
         csv_buffer = io.StringIO()
 
-        # 👉 입력값 정리
+        # 입력값
         input_values = [gaw, gawd, gad, bwei, sex, mage, gran, parn, amni, mulg, bir,
                         prep, dm, htn, chor, prom, ster, sterp, sterd, atbyn, delm]
         input_df = pd.DataFrame({'입력 변수명': display_columns, '입력값': input_values})
 
-        # ✅ 입력정보 저장
+        # CSV 내용 작성
         csv_buffer.write("[입력정보]\n")
         input_df.to_csv(csv_buffer, index=False, encoding='utf-8-sig')
-        csv_buffer.write("\n")
-    
-        # ✅ 예측 결과 저장
-        csv_buffer.write("[예측결과]\n")
+        csv_buffer.write("\n[예측결과]\n")
         pivot_result.to_csv(csv_buffer, encoding='utf-8-sig')
-      
-          st.download_button(
-              label="📥 입력값 + 예측결과 CSV 다운로드",
-              data=csv_buffer.getvalue(),
-              file_name=f"{patient_id}.csv",
-              mime='text/csv'
-          )
-      else:
-          st.info("⬅ 환자정보를 입력하면 결과를 CSV로 다운로드할 수 있습니다.")
-      
-  
-    )
 
+        st.download_button(
+            label="📥 CSV 다운로드 (입력값 + 예측결과)",
+            data=csv_buffer.getvalue(),
+            file_name=f"{patient_id}.csv",
+            mime='text/csv'
+        )
+    else:
+        st.info("⬅ 환자정보를 입력하면 결과를 CSV로 다운로드할 수 있습니다.")
