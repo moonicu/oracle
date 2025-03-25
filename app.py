@@ -116,13 +116,35 @@ if st.button("결과 예측"):
     pivot_result = pivot_result.reindex([y for y in y_columns if y not in regression_targets])
     pivot_result.index = pivot_result.index.map(lambda x: y_display_names.get(x, x))
     st.dataframe(pivot_result, height=900)
+    )
 
-    # CSV 저장
+# ✅ 환자정보 입력
+patient_id = st.text_input("환자정보 (최대 10자)", max_chars=10)
+
+# ✅ CSV 저장 (입력값 + 예측 결과), 입력값 따로 추출
+if patient_id:
+    import io
     csv_buffer = io.StringIO()
+
+    # 👉 입력값 정리
+    input_values = [gaw, gawd, gad, bwei, sex, mage, gran, parn, amni, mulg, bir,
+                    prep, dm, htn, chor, prom, ster, sterp, sterd, atbyn, delm]
+    input_df = pd.DataFrame({'입력 변수명': display_columns, '입력값': input_values})
+
+    # ✅ 입력정보 저장
+    csv_buffer.write("[입력정보]\n")
+    input_df.to_csv(csv_buffer, index=False, encoding='utf-8-sig')
+    csv_buffer.write("\n")
+
+    # ✅ 예측 결과 저장
+    csv_buffer.write("[예측결과]\n")
     pivot_result.to_csv(csv_buffer, encoding='utf-8-sig')
+
     st.download_button(
-        label="예측 결과 CSV 다운로드",
+        label="📥 입력값 + 예측결과 CSV 다운로드",
         data=csv_buffer.getvalue(),
-        file_name='prediction_results.csv',
+        file_name=f"{patient_id}.csv",
         mime='text/csv'
     )
+else:
+    st.info("⬅ 환자정보를 입력하면 결과를 CSV로 다운로드할 수 있습니다.")
