@@ -130,12 +130,12 @@ if st.button("결과 예측"):
         # 입력값
         input_values = [gaw, gawd, gad, bwei, sex, mage, gran, parn, amni, mulg, bir,
                         prep, dm, htn, chor, prom, ster, sterp, sterd, atbyn, delm]
-        input_df = pd.DataFrame({'입력 변수명': display_columns, '입력값': input_values})
+        input_df = pd.DataFrame({'features': display_columns, 'input_values': input_values})
 
         # CSV 내용 작성
-        csv_buffer.write("[입력정보]\n")
+        csv_buffer.write("[KNN data]\n")
         input_df.to_csv(csv_buffer, index=False, encoding='utf-8-sig')
-        csv_buffer.write("\n[예측결과]\n")
+        csv_buffer.write("\n[Prediction Results]\n")
         pivot_result.to_csv(csv_buffer, encoding='utf-8-sig')
 
         st.download_button(
