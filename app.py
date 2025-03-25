@@ -73,12 +73,20 @@ new_X_data = pd.DataFrame([[mage, gran, parn, amni, mulg, bir, prep, dm, htn, ch
 
 if st.button("결과 예측"):
     result_rows = []
+
     for model_name in model_names:
         for y_col in y_columns:
             model_filename = os.path.join(model_save_dir, f"{model_name}_{y_col}.pkl")
+            if not os.path.exists(model_filename):
+                st.warning(f"❗ 모델 파일 없음: {model_filename}")
+                result_rows.append({'Target': y_col, 'Model': model_name, 'Probability': None})
+                continue
+
             try:
                 model = joblib.load(model_filename)
+
                 if hasattr(model, "predict_proba"):
+                    # XGBoost: feature 이름 기반 정렬
                     if model_name == "XGBoost" and hasattr(model, 'get_booster'):
                         model_features = model.get_booster().feature_names
                         X_input = new_X_data[model_features]
@@ -88,17 +96,20 @@ if st.button("결과 예측"):
                     pred_proba = model.predict_proba(X_input)
                     pred_percent = round(pred_proba[:, 1] * 100, 2)
                     result_rows.append({'Target': y_col, 'Model': model_name, 'Probability': pred_percent})
-            except Exception:
+                else:
+                    result_rows.append({'Target': y_col, 'Model': model_name, 'Probability': None})
+
+            except Exception as e:
+                st.warning(f"[{model_name} - {y_col}] 예측 실패: {e}")
                 result_rows.append({'Target': y_col, 'Model': model_name, 'Probability': None})
 
+    # 결과 정리
     df_result = pd.DataFrame(result_rows)
     pivot_result = df_result.pivot(index='Target', columns='Model', values='Probability')
     pivot_result = pivot_result[model_names]
-
-    # re-order by y_display_names
     pivot_result = pivot_result.reindex(y_columns)
 
-    # Highlight best model per target
+    # Best 모델에 ⭐ 표시
     highlight_df = pivot_result.copy()
     for idx in highlight_df.index:
         row = highlight_df.loc[idx]
@@ -106,10 +117,8 @@ if st.button("결과 예측"):
             max_idx = row.idxmax()
             highlight_df.at[idx, max_idx] = f"⭐ {row[max_idx]:.2f}%"
 
-    # format percentages
+    # 나머지 값도 포맷팅
     highlight_df = highlight_df.applymap(lambda x: f"{x:.2f}%" if isinstance(x, (int, float)) else x)
-
-    # apply display names
     highlight_df.index = highlight_df.index.map(lambda x: y_display_names.get(x, x))
 
     st.dataframe(highlight_df, height=900)
@@ -120,13 +129,15 @@ if st.button("결과 예측"):
         meta_info = pd.DataFrame({'항목': ['작성일자'], '값': [datetime.today().strftime('%Y-%m-%d')]})
         meta_info.to_excel(writer, sheet_name='입력 데이터', startrow=0, index=False)
 
-        display_data = [gaw, gawd] + new_X_data.iloc[0].tolist()
+        display_data = [gaw, gawd, gad, bwei, sex, mage, gran, parn, amni, mulg, bir,
+                        prep, dm, htn, chor, prom, ster, sterp, sterd, atbyn, delm]
         input_df = pd.DataFrame({'입력 변수명': display_columns, '입력값': display_data})
         input_df.to_excel(writer, sheet_name='입력 데이터', startrow=3, index=False)
 
         highlight_df.to_excel(writer, sheet_name='예측 결과')
-        
-        processed_data = output.getvalue()
+
+    output.seek(0)  # ✅ 엑셀 저장 후 seek(0) 필요
+    processed_data = output.getvalue()
 
     st.download_button(
         label="입력값 + 예측결과 엑셀로 다운로드",
