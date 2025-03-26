@@ -156,7 +156,7 @@ else:
 # 환자 식별자 입력
 patient_id = st.text_input("환자정보 (최대 10자), 추출시 파일명", max_chars=10)
 
-# ▶ 파일 다운로드 버튼
+# ▶ 파일 다운로드 버튼 (환자 ID 입력 시 활성화)
 if patient_id:
     txt_buffer = io.StringIO()
 
@@ -180,7 +180,7 @@ if patient_id:
         'prom': ('조기 양막 파열', lambda x: {1: '없음', 2: '있음', 3: '모름'}.get(x, '')),
         'ster': ('산전스테로이드 투여 여부', lambda x: {1: '없음', 2: '있음', 3: '모름'}.get(x, '')),
         'sterp': ('스테로이드 완료 여부', lambda x: {0: '미투여', 1: '미완료', 2: '완료', 3: '확인 불가'}.get(x, '')),
-        'sterd': ('스테로이드 약제', lambda x: {0: '미투여', 1: 'Dexamethasone', 2: 'Betamethasone', 3:'Dexa+Beta', 4: '모름'}.get(x, '')),
+        'sterd': ('스테로이드 약제', lambda x: {0: '미투여', 1: 'Dexamethasone', 2: 'Betamethasone', 3: 'Dexa+Beta', 4: '모름'}.get(x, '')),
         'atbyn': ('항생제 사용', lambda x: {1: '없음', 2: '있음'}.get(x, '')),
         'delm': ('분만 방식', lambda x: {1: '질식분만', 2: '제왕절개'}.get(x, ''))
     }
@@ -203,7 +203,7 @@ if patient_id:
     txt_buffer.write(input_df.to_string(index=False))
     txt_buffer.write("\n\n\U0001F4CC [예측 결과]\n")
 
-    if not pivot_result.empty:
+    if 'pivot_result' in locals() and not pivot_result.empty:
         result_txt = pivot_result.reset_index().rename(columns={'index': '예측 항목'})
         txt_buffer.write(result_txt.to_string(index=False))
     else:
