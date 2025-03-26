@@ -21,6 +21,10 @@ y_columns = ['resu', 'resuo', 'resup', 'resui', 'resuh', 'resue', 'resuc', 'rds'
              'ntet', 'ntety', 'iperr', 'pmio', 'avegftr', 'eythtran', 'deathyn',
              'supyn', 'dcdhm1', 'dcdhm2', 'dcdhm3', 'dcdhm4', 'dcdhm5', 'dcdhm6', 'dcdhm7']
 
+# ▶ 입력값은 항상 정의되도록 상단에서 생성
+input_values = [gaw, gawd, gad, bwei, sex, mage, gran, parn, amni, mulg, bir,
+                prep, dm, htn, chor, prom, ster, sterp, sterd, atbyn, delm]
+
 y_display_names = {
     'resu': '초기 소생술 필요 유무',
     'resuo': '초기 소생술 산소',
