@@ -168,18 +168,30 @@ for var, value in zip(display_columns, input_values):
     input_data_rows.append({'변수 코드': var, '변수명(한글)': name, '입력값': value, '값 설명': decode(value)})
 input_df = pd.DataFrame(input_data_rows)
 
-# ▶ CSV 내용 작성
-csv_buffer = io.StringIO()
-csv_buffer.write("[입력 데이터]\n")
-input_df.to_csv(csv_buffer, index=False, encoding='utf-8-sig')
-csv_buffer.write("\n[예측 결과]\n")
-if not st.session_state.pivot_result.empty:
-    st.session_state.pivot_result.to_csv(csv_buffer, encoding='utf-8-sig')
-else:
-    pd.DataFrame({'안내': ['예측 결과가 없습니다.']}).to_csv(csv_buffer, index=False, encoding='utf-8-sig')
-
-# ▶ 다운로드 
+# ▶ TXT 내용 작성
 if patient_id:
+    txt_buffer = io.StringIO()
+    txt_buffer.write("\U0001F4CC [입력 데이터]\n")
+    txt_buffer.write(input_df.to_string(index=False))
+    txt_buffer.write("\n\n\U0001F4CC [예측 결과]\n")
+
+    if not st.session_state.pivot_result.empty:
+        result_txt = st.session_state.pivot_result.reset_index().rename(columns={'index': '예측 항목'})
+        txt_buffer.write(result_txt.to_string(index=False))
+    else:
+        txt_buffer.write("예측 결과가 없습니다. '결과 예측' 버튼을 먼저 눌러주세요.\n")
+
+    # ▶ CSV 내용 작성
+    csv_buffer = io.StringIO()
+    csv_buffer.write("[입력 데이터]\n")
+    input_df.to_csv(csv_buffer, index=False, encoding='utf-8-sig')
+    csv_buffer.write("\n[예측 결과]\n")
+    if not st.session_state.pivot_result.empty:
+        st.session_state.pivot_result.to_csv(csv_buffer, encoding='utf-8-sig')
+    else:
+        pd.DataFrame({'안내': ['예측 결과가 없습니다.']}).to_csv(csv_buffer, index=False, encoding='utf-8-sig')
+
+    # ▶ 다운로드 버튼 표시
     st.download_button(
         label="📥 TXT 다운로드 (입력값 + 예측결과)",
         data=txt_buffer.getvalue(),
