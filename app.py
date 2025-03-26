@@ -100,6 +100,9 @@ delm = st.selectbox("분만 방식 (delm)", [1, 2], format_func=lambda x: {1: "�
 new_X_data = pd.DataFrame([[mage, gran, parn, amni, mulg, bir, prep, dm, htn, chor,
                             prom, ster, sterp, sterd, atbyn, delm, gad, sex, bwei]], columns=x_columns)
 
+# ▼ 환자 ID
+patient_id = st.text_input("환자정보 (파일명)", max_chars=10)
+
 # ▼ 전역 상태: 예측 결과 보관
 if 'pivot_result' not in st.session_state:
     st.session_state.pivot_result = pd.DataFrame()
@@ -128,9 +131,6 @@ if st.button("결과 예측"):
     pivot.index = pivot.index.map(lambda x: y_display_names.get(x, x))
     st.dataframe(pivot, height=900)
     st.session_state.pivot_result = pivot  # 저장
-
-# ▼ 환자 ID
-patient_id = st.text_input("환자정보 (파일명)", max_chars=10)
 
 # ▶ 입력값 수집
 input_values = [gaw, gawd, gad, bwei, sex, mage, gran, parn, amni, mulg, bir,
