@@ -37,7 +37,7 @@ y_display_names = {
     'mph': '대량 폐출혈 (0=No, 1=Yes)',
     'ph': '폐동맥 고혈압 (0=No, 1=Yes)',
     'bpdyn': '기관지폐이형성증 여부 (0=No, 1=Yes)',
-    'bdp': '기관지폐이형성증 (0=No, 1=Yes)',
+    'bpdm': '기관지폐이형성증 (0=No, 1=Yes)',
     'pdad': 'PDA 약물 치료 (0=No, 1=Yes)',
     'acl': '동맥관 결찰술 (0=No, 1=Yes)',
     'lbp': '저혈압 (0=No, 1=Yes)',
