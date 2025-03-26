@@ -94,7 +94,7 @@ sterp = st.selectbox("스테로이드 완료 여부 (sterp)", [0, 1, 2, 3],
     format_func=lambda x: ["미투여", "투여했으나 미완료", "완료", "확인 불가"][x],
     help="분만 1주일 이내에 정해진 간격으로 정해진 코스의 스테로이드 치료를 모두 완료한 경우 완료(betamethasone 2회, dexamethasone 4회)"
 )
-sterd = st.selectbox("스테로이드 약제", [0, 1, 2, 4], format_func=lambda x: {0: "미투여", 1: "Dexamethasone", 2: "Betamethasone", 3: "Dexa+Beta", 4: "모름"}.get(x))
+sterd = st.selectbox("스테로이드 약제", [0, 1, 2, 3, 4], format_func=lambda x: {0: "미투여", 1: "Dexamethasone", 2: "Betamethasone", 3: "Dexa+Beta", 4: "모름"}.get(x))
 atbyn = st.selectbox("항생제 사용", [1, 2], format_func=lambda x: {1: "없음", 2: "있음"}.get(x))
 delm = st.selectbox("분만 방식 (delm)", [1, 2], format_func=lambda x: {1: "질식분만", 2: "제왕절개"}.get(x))
 
