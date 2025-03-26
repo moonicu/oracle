@@ -65,43 +65,6 @@ y_display_names = {
     'dcdhm7': '퇴원시 인공호흡기 필요'
 }
 
-input_variable_info = {
-    'gaw': ('임신 주수', lambda x: f"{x}주"),
-    'gawd': ('임신 일수', lambda x: f"{x}일"),
-    'gad': ('재태연령 (일)', lambda x: f"{x}일"),
-    'bwei': ('출생 체중 (g)', str),
-    'sex': ('성별', lambda x: {1: '남아', 2: '여아', 3: 'ambiguous'}.get(x, '')),
-    'mage': ('산모 나이', str),
-    'gran': ('임신력', str),
-    'parn': ('출산력', str),
-    'amni': ('양수량', lambda x: {1: '정상', 2: '과소증', 3: '과다증', 4: '모름'}.get(x, '')),
-    'mulg': ('다태 정보', lambda x: {1: 'Singleton', 2: 'Twin', 3: 'Triplet', 4: 'Quad 이상'}.get(x, '')),
-    'bir': ('출생 순서', lambda x: {0: '단태', 1: '1st', 2: '2nd', 3: '3rd', 4: '4th 이상'}.get(x, '')),
-    'prep': ('임신 과정', lambda x: {1: '자연임신', 2: 'IVF'}.get(x, '')),
-    'dm': ('당뇨', lambda x: {1: '없음', 2: 'GDM', 3: 'Overt DM'}.get(x, '')),
-    'htn': ('고혈압', lambda x: {1: '없음', 2: 'PIH', 3: 'Chronic HTN'}.get(x, '')),
-    'chor': ('융모양막염', lambda x: {1: '없음', 2: '있음', 3: '모름'}.get(x, '')),
-    'prom': ('조기 양막 파열', lambda x: {1: '없음', 2: '있음', 3: '모름'}.get(x, '')),
-    'ster': ('산전스테로이드 투여 여부', lambda x: {1: '없음', 2: '있음', 3: '모름'}.get(x, '')),
-    'sterp': ('스테로이드 완료 여부', lambda x: {0: '미투여', 1: '미완료', 2: '완료', 3: '확인 불가'}.get(x, '')),
-    'sterd': ('스테로이드 약제', lambda x: {0: '미투여', 1: 'Dexamethasone', 2: 'Betamethasone', 3:'Dexa+Beta', 4: '모름'}.get(x, '')),
-    'atbyn': ('항생제 사용', lambda x: {1: '없음', 2: '있음'}.get(x, '')),
-    'delm': ('분만 방식', lambda x: {1: '질식분만', 2: '제왕절개'}.get(x, ''))
-}
-
-# display_columns와 input_values를 기반으로 한글 설명 붙인 테이블 생성
-input_data_rows = []
-for var, value in zip(display_columns, input_values):
-    var_name, decoder = input_variable_info.get(var, (var, str))
-    input_data_rows.append({
-        '변수 코드': var,
-        '변수명(한글)': var_name,
-        '입력값': value,
-        '값 설명': decoder(value)
-    })
-
-input_df = pd.DataFrame(input_data_rows)
-
 
 st.title("NICU 환자 예측 모델")
 
@@ -137,7 +100,6 @@ delm = st.selectbox("분만 방식 (delm)", [1, 2], format_func=lambda x: {1: "�
 
 new_X_data = pd.DataFrame([[mage, gran, parn, amni, mulg, bir, prep, dm, htn, chor,
                             prom, ster, sterp, sterd, atbyn, delm, gad, sex, bwei]], columns=x_columns)
-
 
 
 
@@ -194,25 +156,58 @@ patient_id = st.text_input("환자정보 (최대 10자), 추출시 파일명", m
 if patient_id:
     txt_buffer = io.StringIO()
 
-    # 입력값
-    input_values = [gaw, gawd, gad, bwei, sex, mage, gran, parn, amni, mulg, bir,
-                    prep, dm, htn, chor, prom, ster, sterp, sterd, atbyn, delm]
-    input_df = pd.DataFrame({'변수명': display_columns, '입력값': input_values})
+    # ▶ 입력값과 변수 정보 매핑
+    input_variable_info = {
+        'gaw': ('임신 주수', lambda x: f"{x}주"),
+        'gawd': ('임신 일수', lambda x: f"{x}일"),
+        'gad': ('재태연령 (일)', lambda x: f"{x}일"),
+        'bwei': ('출생 체중 (g)', str),
+        'sex': ('성별', lambda x: {1: '남아', 2: '여아', 3: 'ambiguous'}.get(x, '')),
+        'mage': ('산모 나이', str),
+        'gran': ('임신력', str),
+        'parn': ('출산력', str),
+        'amni': ('양수량', lambda x: {1: '정상', 2: '과소증', 3: '과다증', 4: '모름'}.get(x, '')),
+        'mulg': ('다태 정보', lambda x: {1: 'Singleton', 2: 'Twin', 3: 'Triplet', 4: 'Quad 이상'}.get(x, '')),
+        'bir': ('출생 순서', lambda x: {0: '단태', 1: '1st', 2: '2nd', 3: '3rd', 4: '4th 이상'}.get(x, '')),
+        'prep': ('임신 과정', lambda x: {1: '자연임신', 2: 'IVF'}.get(x, '')),
+        'dm': ('당뇨', lambda x: {1: '없음', 2: 'GDM', 3: 'Overt DM'}.get(x, '')),
+        'htn': ('고혈압', lambda x: {1: '없음', 2: 'PIH', 3: 'Chronic HTN'}.get(x, '')),
+        'chor': ('융모양막염', lambda x: {1: '없음', 2: '있음', 3: '모름'}.get(x, '')),
+        'prom': ('조기 양막 파열', lambda x: {1: '없음', 2: '있음', 3: '모름'}.get(x, '')),
+        'ster': ('산전스테로이드 투여 여부', lambda x: {1: '없음', 2: '있음', 3: '모름'}.get(x, '')),
+        'sterp': ('스테로이드 완료 여부', lambda x: {0: '미투여', 1: '미완료', 2: '완료', 3: '확인 불가'}.get(x, '')),
+        'sterd': ('스테로이드 약제', lambda x: {0: '미투여', 1: 'Dexamethasone', 2: 'Betamethasone', 3:'Dexa+Beta', 4: '모름'}.get(x, '')),
+        'atbyn': ('항생제 사용', lambda x: {1: '없음', 2: '있음'}.get(x, '')),
+        'delm': ('분만 방식', lambda x: {1: '질식분만', 2: '제왕절개'}.get(x, ''))
+    }
 
-    # 📄 TXT 내용 구성
-    txt_buffer.write("📌 [입력 데이터]\n")
+    # ▶ 입력값 정리 (한글 설명 포함)
+    input_data_rows = []
+    for var, value in zip(display_columns, input_values):
+        var_name, decoder = input_variable_info.get(var, (var, str))
+        input_data_rows.append({
+            '변수 코드': var,
+            '변수명(한글)': var_name,
+            '입력값': value,
+            '값 설명': decoder(value)
+        })
+
+    input_df = pd.DataFrame(input_data_rows)
+
+    # ▶ TXT 내용 작성
+    txt_buffer.write("\U0001F4CC [입력 데이터]\n")
     txt_buffer.write(input_df.to_string(index=False))
-    txt_buffer.write("\n\n📌 [예측 결과]\n")
+    txt_buffer.write("\n\n\U0001F4CC [예측 결과]\n")
 
     if not pivot_result.empty:
         result_txt = pivot_result.reset_index().rename(columns={'index': '예측 항목'})
-        result_txt.to_string(txt_buffer, index=False)
+        txt_buffer.write(result_txt.to_string(index=False))
     else:
         txt_buffer.write("예측 결과가 없습니다. '결과 예측' 버튼을 먼저 눌러주세요.\n")
 
-    # 📥 다운로드 버튼
+    # ▶ 다운로드 버튼 생성
     st.download_button(
-        label="📥 TXT 다운로드 (입력값 + 예측결과)",
+        label="\U0001F4E5 TXT 다운로드 (입력값 + 예측결과)",
         data=txt_buffer.getvalue(),
         file_name=f"{patient_id}.txt",
         mime='text/plain'
