@@ -178,16 +178,19 @@ if not st.session_state.pivot_result.empty:
 else:
     pd.DataFrame({'안내': ['예측 결과가 없습니다.']}).to_csv(csv_buffer, index=False, encoding='utf-8-sig')
 
-# ▶ 다운로드 버튼 항상 표시
-st.download_button(
-    label="📥 TXT 다운로드 (입력값 + 예측결과)",
-    data=txt_buffer.getvalue() if patient_id else "환자정보를 입력해야 다운로드가 가능합니다.",
-    file_name=f"{patient_id}.txt" if patient_id else "입력필요.txt",
-    mime='text/plain'
-)
-st.download_button(
-    label="📥 CSV 다운로드 (입력값 + 예측결과)",
-    data=csv_buffer.getvalue() if patient_id else "환자정보를 입력해야 다운로드가 가능합니다.",
-    file_name=f"{patient_id}.csv" if patient_id else "입력필요.csv",
-    mime='text/csv'
-)
+# ▶ 다운로드 
+if patient_id:
+    st.download_button(
+        label="📥 TXT 다운로드 (입력값 + 예측결과)",
+        data=txt_buffer.getvalue(),
+        file_name=f"{patient_id}.txt",
+        mime='text/plain'
+    )
+    st.download_button(
+        label="📥 CSV 다운로드 (입력값 + 예측결과)",
+        data=csv_buffer.getvalue(),
+        file_name=f"{patient_id}.csv",
+        mime='text/csv'
+    )
+else:
+    st.warning("⬅ 환자정보를 입력해야 다운로드가 가능합니다.")
