@@ -64,6 +64,8 @@ y_display_names = {
     'dcdhm7': '퇴원시 인공호흡기 필요'
 }
 
+input_values = []
+
 # ▼ 입력
 st.title("NICU 환자 예측 모델")
 st.header("입력 데이터")
