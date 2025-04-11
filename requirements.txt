@@ -4,4 +4,3 @@ scikit-learn
 xgboost
 lightgbm
 datetime
-xlsxwriter
