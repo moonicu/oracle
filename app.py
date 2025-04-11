@@ -182,29 +182,12 @@ if patient_id:
         txt_buffer.write(result_txt.to_string(index=False))
     else:
         txt_buffer.write("예측 결과가 없습니다. '결과 예측' 버튼을 먼저 눌러주세요.\n")
-
-    # ▶ CSV 내용 작성
-    csv_buffer = io.StringIO()
-    csv_buffer.write("[입력 데이터]\n")
-    input_df.to_csv(csv_buffer, index=False, encoding='utf-8-sig')
-    csv_buffer.write("\n[예측 결과]\n")
-    if not st.session_state.pivot_result.empty:
-        st.session_state.pivot_result.to_csv(csv_buffer, encoding='utf-8-sig')
-    else:
-        pd.DataFrame({'안내': ['예측 결과가 없습니다.']}).to_csv(csv_buffer, index=False, encoding='utf-8-sig')
-
     # ▶ 다운로드 버튼 표시
     st.download_button(
         label="📥 TXT 다운로드 (입력값 + 예측결과)",
         data=txt_buffer.getvalue(),
         file_name=f"{patient_id}.txt",
         mime='text/plain'
-    )
-    st.download_button(
-        label="📥 CSV 다운로드 (입력값 + 예측결과)",
-        data=csv_buffer.getvalue(),
-        file_name=f"{patient_id}.csv",
-        mime='text/csv'
     )
 else:
     st.warning("⬅ 환자정보를 입력해야 다운로드가 가능합니다.")
