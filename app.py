@@ -66,155 +66,99 @@ y_display_names = {
 }
 
 
-st.title("NICU 환자 예측 모델")
-
-st.header("입력 데이터")
-
-gaw = st.number_input("임신 주수", min_value=20, max_value=50, value=28)
-gawd = st.number_input("임신 일수", min_value=0, max_value=6, value=4)
-gad = gaw * 7 + gawd
-bwei = st.number_input("출생 체중 (g)", min_value=200, max_value=5000, value=1000)
-sex = st.selectbox("성별", [1, 2, 3], format_func=lambda x: {1: "남아", 2: "여아", 3: "ambiguous"}.get(x))
-
-mage = st.number_input("산모 나이", min_value=15, max_value=99, value=30)
-gran = st.number_input("임신력 (gravida)", min_value=0, max_value=10, value=0)
-parn = st.number_input("출산력 (parity)", min_value=0, max_value=10, value=0)
-
-amni = st.selectbox("양수량", [1, 2, 3, 4], format_func=lambda x: {1: "정상", 2: "과소증", 3: "과다증", 4: "모름"}.get(x))
-mulg = st.selectbox("다태 정보", [1, 2, 3, 4], format_func=lambda x: {1: "Singleton", 2: "Twin", 3: "Triplet", 4: "Quad 이상"}.get(x))
-bir = st.selectbox("출생 순서", [0, 1, 2, 3, 4], format_func=lambda x: {0: "단태", 1: "1st", 2: "2nd", 3: "3rd", 4: "4th 이상"}.get(x))
-
-prep = st.selectbox("임신과정", [1, 2], format_func=lambda x: {1: "자연임신", 2: "IVF"}.get(x))
-dm = st.selectbox("당뇨", [1, 2, 3], format_func=lambda x: {1: "없음", 2: "GDM", 3: "Overt DM"}.get(x))
-htn = st.selectbox("고혈압", [1, 2, 3], format_func=lambda x: {1: "없음", 2: "PIH", 3: "Chronic HTN"}.get(x))
-chor = st.selectbox("융모양막염", [1, 2, 3], format_func=lambda x: {1: "없음", 2: "있음", 3: "모름"}.get(x))
-prom = st.selectbox("조기 양막 파열", [1, 2, 3], format_func=lambda x: {1: "없음", 2: "있음", 3: "모름"}.get(x))
-ster = st.selectbox("산전스테로이드 투여 여부", [1, 2, 3], format_func=lambda x: {1: "없음", 2: "있음", 3: "모름"}.get(x))
-sterp = st.selectbox("스테로이드 완료 여부 (sterp)", [0, 1, 2, 3],
-    format_func=lambda x: ["미투여", "투여했으나 미완료", "완료", "확인 불가"][x],
-    help="분만 1주일 이내에 정해진 간격으로 정해진 코스의 스테로이드 치료를 모두 완료한 경우 완료(betamethasone 2회, dexamethasone 4회)"
-)
-sterd = st.selectbox("스테로이드 약제", [0, 1, 2, 3, 4], format_func=lambda x: {0: "미투여", 1: "Dexamethasone", 2: "Betamethasone", 3: "Dexa+Beta", 4: "모름"}.get(x))
-atbyn = st.selectbox("항생제 사용", [1, 2], format_func=lambda x: {1: "없음", 2: "있음"}.get(x))
-delm = st.selectbox("분만 방식 (delm)", [1, 2], format_func=lambda x: {1: "질식분만", 2: "제왕절개"}.get(x))
-
-new_X_data = pd.DataFrame([[mage, gran, parn, amni, mulg, bir, prep, dm, htn, chor,
-                            prom, ster, sterp, sterd, atbyn, delm, gad, sex, bwei]], columns=x_columns)
-
-
-
-# 예측 결과 초기화
-result_rows = []
-
-# ▶ 예측 버튼
-if st.button("결과 예측"):
+# 모델 로딩 - 캐시 사용
+@st.cache_resource
+def load_all_models():
+    all_models = {}
     for model_name in model_names:
         for y_col in y_columns:
-            model_filename = os.path.join(model_save_dir, f"{model_name}_{y_col}.pkl")
-            if not os.path.exists(model_filename):
-                st.warning(f"❗ 모델 파일 없음: {model_filename}")
-                result_rows.append({'Target': y_col, 'Model': model_name, 'Probability (%)': None})
-                continue
+            model_path = os.path.join(model_save_dir, f"{model_name}_{y_col}.pkl")
+            if os.path.exists(model_path):
+                try:
+                    all_models[(model_name, y_col)] = joblib.load(model_path)
+                except Exception as e:
+                    st.warning(f"[{model_name}-{y_col}] 모델 로드 실패: {e}")
+            else:
+                st.warning(f"❗ 모델 파일 없음: {model_path}")
+    return all_models
 
-            try:
-                model = joblib.load(model_filename)
+all_models = load_all_models()
 
-                if hasattr(model, "predict_proba"):
-                    if model_name == "XGBoost" and hasattr(model, 'get_booster'):
-                        model_features = model.get_booster().feature_names
-                        X_input = new_X_data[model_features]
-                    else:
-                        X_input = new_X_data
+# UI 입력 폼
+st.title("NICU 환자 예측 모델")
+st.header("입력 데이터")
 
-                    pred_proba = model.predict_proba(X_input)
-                    pred_percent = round(float(pred_proba[0, 1]) * 100, 2)
-                    result_rows.append({
-                        'Target': y_col, 'Model': model_name, 'Probability (%)': f"{pred_percent:.2f}%"
-                    })
+gaw = st.number_input("임신 주수", 20, 50, 28)
+gawd = st.number_input("임신 일수", 0, 6, 4)
+gad = gaw * 7 + gawd
+bwei = st.number_input("출생 체중 (g)", 200, 5000, 1000)
+sex = st.selectbox("성별", [1, 2, 3], format_func=lambda x: {1: "남아", 2: "여아", 3: "ambiguous"}[x])
+
+# 기타 입력 항목 (mage ~ delm까지)
+inputs = {
+    'mage': st.number_input("산모 나이", 15, 99, 30),
+    'gran': st.number_input("임신력", 0, 10, 0),
+    'parn': st.number_input("출산력", 0, 10, 0),
+    'amni': st.selectbox("양수량", [1,2,3,4], format_func=lambda x: ["정상","과소","과다","모름"][x-1]),
+    'mulg': st.selectbox("다태 정보", [1,2,3,4], format_func=lambda x: ["Singleton","Twin","Triplet","Quad 이상"][x-1]),
+    'bir': st.selectbox("출생 순서", [0,1,2,3,4], format_func=lambda x: ["단태","1st","2nd","3rd","4th 이상"][x]),
+    'prep': st.selectbox("임신 과정", [1,2], format_func=lambda x: ["자연임신","IVF"][x-1]),
+    'dm': st.selectbox("당뇨", [1,2,3], format_func=lambda x: ["없음","GDM","Overt DM"][x-1]),
+    'htn': st.selectbox("고혈압", [1,2,3], format_func=lambda x: ["없음","PIH","Chronic HTN"][x-1]),
+    'chor': st.selectbox("융모양막염", [1,2,3], format_func=lambda x: ["없음","있음","모름"][x-1]),
+    'prom': st.selectbox("조기 양막 파열", [1,2,3], format_func=lambda x: ["없음","있음","모름"][x-1]),
+    'ster': st.selectbox("스테로이드 사용", [1,2,3], format_func=lambda x: ["없음","있음","모름"][x-1]),
+    'sterp': st.selectbox("스테로이드 완료 여부", [0,1,2,3], format_func=lambda x: ["미투여","미완료","완료","모름"][x]),
+    'sterd': st.selectbox("스테로이드 약제", [0,1,2,3,4], format_func=lambda x: ["미투여","Dexa","Beta","Dexa+Beta","모름"][x]),
+    'atbyn': st.selectbox("항생제 사용", [1,2], format_func=lambda x: ["없음","있음"][x-1]),
+    'delm': st.selectbox("분만 방식", [1,2], format_func=lambda x: ["질식분만","제왕절개"][x-1])
+}
+
+# 입력 정리
+data_values = [inputs[col] for col in x_columns if col in inputs] + [gad, sex, bwei]
+new_X_data = pd.DataFrame([data_values], columns=x_columns)
+
+# 예측 수행
+if st.button("결과 예측"):
+    result_rows = []
+    for (model_name, y_col), model in all_models.items():
+        try:
+            if hasattr(model, "predict_proba"):
+                if model_name == "XGBoost" and hasattr(model, 'get_booster'):
+                    X_input = new_X_data[model.get_booster().feature_names]
                 else:
-                    result_rows.append({'Target': y_col, 'Model': model_name, 'Probability (%)': None})
+                    X_input = new_X_data
 
-            except Exception as e:
-                st.warning(f"[{model_name} - {y_col}] 예측 실패: {e}")
-                result_rows.append({'Target': y_col, 'Model': model_name, 'Probability (%)': None})
+                prob = model.predict_proba(X_input)
+                result_rows.append({
+                    'Target': y_col,
+                    'Model': model_name,
+                    'Probability (%)': f"{prob[0, 1]*100:.2f}%"
+                })
+        except Exception as e:
+            result_rows.append({'Target': y_col, 'Model': model_name, 'Probability (%)': None})
 
-# ▶ 결과 정리 및 화면 표시
-if result_rows:
+    # 피벗 정리
     df_result = pd.DataFrame(result_rows)
-    pivot_result = df_result.pivot(index='Target', columns='Model', values='Probability (%)')
-    pivot_result = pivot_result[model_names]
-    pivot_result = pivot_result.reindex(y_columns)
-    pivot_result.index = pivot_result.index.map(lambda x: y_display_names.get(x, x))
-    st.dataframe(pivot_result, height=900)
-else:
-    pivot_result = pd.DataFrame()  # 비어 있는 상태
+    pivot = df_result.pivot(index='Target', columns='Model', values='Probability (%)')
+    pivot = pivot[model_names].reindex(y_columns)
+    pivot.index = pivot.index.map(lambda x: y_display_names.get(x, x))
+    st.dataframe(pivot, height=800)
 
-# 환자 식별자 입력
-patient_id = st.text_input("환자정보 (최대 10자), 추출시 파일명", max_chars=10)
+    # 다운로드 준비
+    patient_id = st.text_input("환자 식별자 (파일명)", max_chars=10)
+    if patient_id:
+        txt_buf = io.StringIO()
+        txt_buf.write("[입력 데이터]\n")
+        for var, val in zip(display_columns, [gaw, gawd, gad, bwei, sex] + list(inputs.values())):
+            txt_buf.write(f"{var}: {val}\n")
 
-# ▶ 파일 다운로드 버튼 (환자 ID 입력 시 활성화)
-if patient_id:
-    txt_buffer = io.StringIO()
+        txt_buf.write("\n[예측 결과]\n")
+        txt_buf.write(pivot.reset_index().to_string(index=False))
 
-    # ▶ 입력값 수집
-    input_values = [gaw, gawd, gad, bwei, sex, mage, gran, parn, amni, mulg, bir,
-                    prep, dm, htn, chor, prom, ster, sterp, sterd, atbyn, delm]
-
-    # ▶ 입력값과 변수 정보 매핑
-    input_variable_info = {
-        'gaw': ('임신 주수', lambda x: f"{x}주"),
-        'gawd': ('임신 일수', lambda x: f"{x}일"),
-        'gad': ('재태연령 (일)', lambda x: f"{x}일"),
-        'bwei': ('출생 체중 (g)', str),
-        'sex': ('성별', lambda x: {1: '남아', 2: '여아', 3: 'ambiguous'}.get(x, '')),
-        'mage': ('산모 나이', str),
-        'gran': ('임신력', str),
-        'parn': ('출산력', str),
-        'amni': ('양수량', lambda x: {1: '정상', 2: '과소증', 3: '과다증', 4: '모름'}.get(x, '')),
-        'mulg': ('다태 정보', lambda x: {1: 'Singleton', 2: 'Twin', 3: 'Triplet', 4: 'Quad 이상'}.get(x, '')),
-        'bir': ('출생 순서', lambda x: {0: '단태', 1: '1st', 2: '2nd', 3: '3rd', 4: '4th 이상'}.get(x, '')),
-        'prep': ('임신 과정', lambda x: {1: '자연임신', 2: 'IVF'}.get(x, '')),
-        'dm': ('당뇨', lambda x: {1: '없음', 2: 'GDM', 3: 'Overt DM'}.get(x, '')),
-        'htn': ('고혈압', lambda x: {1: '없음', 2: 'PIH', 3: 'Chronic HTN'}.get(x, '')),
-        'chor': ('융모양막염', lambda x: {1: '없음', 2: '있음', 3: '모름'}.get(x, '')),
-        'prom': ('조기 양막 파열', lambda x: {1: '없음', 2: '있음', 3: '모름'}.get(x, '')),
-        'ster': ('산전스테로이드 투여 여부', lambda x: {1: '없음', 2: '있음', 3: '모름'}.get(x, '')),
-        'sterp': ('스테로이드 완료 여부', lambda x: {0: '미투여', 1: '미완료', 2: '완료', 3: '확인 불가'}.get(x, '')),
-        'sterd': ('스테로이드 약제', lambda x: {0: '미투여', 1: 'Dexamethasone', 2: 'Betamethasone', 3: 'Dexa+Beta', 4: '모름'}.get(x, '')),
-        'atbyn': ('항생제 사용', lambda x: {1: '없음', 2: '있음'}.get(x, '')),
-        'delm': ('분만 방식', lambda x: {1: '질식분만', 2: '제왕절개'}.get(x, ''))
-    }
-
-    # ▶ 입력값 정리 (한글 설명 포함)
-    input_data_rows = []
-    for var, value in zip(display_columns, input_values):
-        var_name, decoder = input_variable_info.get(var, (var, str))
-        input_data_rows.append({
-            '변수 코드': var,
-            '변수명(한글)': var_name,
-            '입력값': value,
-            '값 설명': decoder(value)
-        })
-
-    input_df = pd.DataFrame(input_data_rows)
-
-    # ▶ TXT 내용 작성
-    txt_buffer.write("\U0001F4CC [입력 데이터]\n")
-    txt_buffer.write(input_df.to_string(index=False))
-    txt_buffer.write("\n\n\U0001F4CC [예측 결과]\n")
-
-    if 'pivot_result' in locals() and not pivot_result.empty:
-        result_txt = pivot_result.reset_index().rename(columns={'index': '예측 항목'})
-        txt_buffer.write(result_txt.to_string(index=False))
-    else:
-        txt_buffer.write("예측 결과가 없습니다. '결과 예측' 버튼을 먼저 눌러주세요.\n")
-
-    # ▶ 다운로드 버튼 생성
-    st.download_button(
-        label="\U0001F4E5 TXT 다운로드 (입력값 + 예측결과)",
-        data=txt_buffer.getvalue(),
-        file_name=f"{patient_id}.txt",
-        mime='text/plain'
-    )
-else:
-    st.info("⬅ 환자정보를 입력하면 결과를 TXT로 다운로드할 수 있습니다.")
+        st.download_button(
+            label="📄 결과 TXT 다운로드",
+            data=txt_buf.getvalue(),
+            file_name=f"{patient_id}.txt",
+            mime="text/plain"
+        )
