@@ -118,6 +118,12 @@ inputs = {
 data_values = [inputs[col] for col in x_columns if col in inputs] + [gad, sex, bwei]
 new_X_data = pd.DataFrame([data_values], columns=x_columns)
 
+# 환자 식별자 입력은 항상 보여줌
+patient_id = st.text_input("환자정보 (최대 10자), 추출시 파일명", max_chars=10)
+
+# 결과 저장용 변수 초기화 (전역에서 사용 가능하게)
+pivot = pd.DataFrame()
+
 # 예측 수행
 if st.button("결과 예측"):
     result_rows = []
@@ -138,27 +144,28 @@ if st.button("결과 예측"):
         except Exception as e:
             result_rows.append({'Target': y_col, 'Model': model_name, 'Probability (%)': None})
 
-    # 피벗 정리
     df_result = pd.DataFrame(result_rows)
     pivot = df_result.pivot(index='Target', columns='Model', values='Probability (%)')
     pivot = pivot[model_names].reindex(y_columns)
     pivot.index = pivot.index.map(lambda x: y_display_names.get(x, x))
     st.dataframe(pivot, height=800)
 
-    # 다운로드 준비
-    patient_id = st.text_input("환자 식별자 (파일명)", max_chars=10)
-    if patient_id:
-        txt_buf = io.StringIO()
-        txt_buf.write("[입력 데이터]\n")
-        for var, val in zip(display_columns, [gaw, gawd, gad, bwei, sex] + list(inputs.values())):
-            txt_buf.write(f"{var}: {val}\n")
+# 다운로드 버튼은 예측 결과가 있을 때만 가능
+if patient_id:
+    txt_buf = io.StringIO()
+    txt_buf.write("[입력 데이터]\n")
+    for var, val in zip(display_columns, [gaw, gawd, gad, bwei, sex] + list(inputs.values())):
+        txt_buf.write(f"{var}: {val}\n")
 
-        txt_buf.write("\n[예측 결과]\n")
+    txt_buf.write("\n[예측 결과]\n")
+    if not pivot.empty:
         txt_buf.write(pivot.reset_index().to_string(index=False))
+    else:
+        txt_buf.write("예측 결과가 없습니다. '결과 예측' 버튼을 먼저 눌러주세요.\n")
 
-        st.download_button(
-            label="📄 결과 TXT 다운로드",
-            data=txt_buf.getvalue(),
-            file_name=f"{patient_id}.txt",
-            mime="text/plain"
-        )
+    st.download_button(
+        label="📄 결과 TXT 다운로드",
+        data=txt_buf.getvalue(),
+        file_name=f"{patient_id}.txt",
+        mime="text/plain"
+    )
