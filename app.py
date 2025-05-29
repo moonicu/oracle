@@ -52,7 +52,7 @@ y_display_names = y_display_ko if lang == '한국어' else y_display_en
 
 # 그룹 구분
 resuscitation_targets = ['resu', 'resuo', 'resup', 'resui', 'resuh', 'resue', 'resuc', 'sft', 'sftw']
-complication_targets = list(set(y_columns) - set(resuscitation_targets))
+complication_targets = [y for y in y_columns if y not in resuscitation_targets]
 
 @st.cache_resource
 def load_best_models():
@@ -77,32 +77,39 @@ gaw = st.number_input("Gestational Weeks" if lang == 'English' else "임신 주�
 gawd = st.number_input("Gestational Days" if lang == 'English' else "임신 일수", 0, 6, 0)
 gad = gaw * 7 + gawd
 bwei = st.number_input("Birth Weight (g)" if lang == 'English' else "출생 체중 (g)", 200, 5000, 1000)
-sex = st.selectbox("Sex" if lang == 'English' else "성별", [1, 2, 3], format_func=lambda x: {1: "Male", 2: "Female", 3: "Ambiguous"} if lang == 'English' else {1: "남아", 2: "여아", 3: "ambiguous"}[x])
+sex_labels = {1: ("Male" if lang == 'English' else "남아"), 2: ("Female" if lang == 'English' else "여아"), 3: "Ambiguous"}
+sex = st.selectbox("Sex" if lang == 'English' else "성별", [1, 2, 3], format_func=lambda x: sex_labels[x])
 
+
+# 기타 입력 항목
 inputs = {
-    'mage': st.number_input("Maternal Age" if lang == 'English' else "산모 나이", 15, 99, 30),
-    'gran': st.number_input("Gravidity" if lang == 'English' else "임신력", 0, 10, 0),
-    'parn': st.number_input("Parity" if lang == 'English' else "출산력", 0, 10, 0),
-    'amni': st.selectbox("Amniotic Fluid" if lang == 'English' else "양수량", [1, 2, 3, 4], format_func=lambda x: ["Normal", "Oligo", "Poly", "Unknown"] if lang == 'English' else ["정상", "과소", "과다", "모름"][x-1]),
-    'mulg': st.selectbox("Multiplicity" if lang == 'English' else "다태 정보", [1, 2, 3, 4], format_func=lambda x: ["Singleton", "Twin", "Triplet", "Quad+"] if lang == 'English' else ["Singleton", "Twin", "Triplet", "Quad 이상"][x-1]),
-    'bir': st.selectbox("Birth Order" if lang == 'English' else "출생 순서", [0, 1, 2, 3, 4], format_func=lambda x: ["Single", "1st", "2nd", "3rd", "4th+"] if lang == 'English' else ["단태", "1st", "2nd", "3rd", "4th 이상"][x]),
-    'prep': st.selectbox("Pregnancy Type" if lang == 'English' else "임신 과정", [1, 2], format_func=lambda x: ["Natural", "IVF"] if lang == 'English' else ["자연임신", "IVF"][x-1]),
-    'dm': st.selectbox("Diabetes" if lang == 'English' else "당뇨", [1, 2, 3], format_func=lambda x: ["None", "GDM", "Overt"] if lang == 'English' else ["없음", "GDM", "Overt DM"][x-1]),
-    'htn': st.selectbox("Hypertension" if lang == 'English' else "고혈압", [1, 2, 3], format_func=lambda x: ["None", "PIH", "Chronic"] if lang == 'English' else ["없음", "PIH", "Chronic HTN"][x-1]),
-    'chor': st.selectbox("Chorioamnionitis" if lang == 'English' else "융모양막염", [1, 2, 3], format_func=lambda x: ["No", "Yes", "Unknown"] if lang == 'English' else ["없음", "있음", "모름"][x-1]),
-    'prom': st.selectbox("PROM" if lang == 'English' else "조기 양막 파열", [1, 2, 3], format_func=lambda x: ["No", "Yes", "Unknown"] if lang == 'English' else ["없음", "있음", "모름"][x-1]),
-    'ster': st.selectbox("Steroid Use" if lang == 'English' else "스테로이드 사용", [1, 2, 3], format_func=lambda x: ["No", "Yes", "Unknown"] if lang == 'English' else ["없음", "있음", "모름"][x-1]),
-    'sterp': st.selectbox("Steroid Completion" if lang == 'English' else "스테로이드 완료 여부", [0, 1, 2, 3], format_func=lambda x: ["None", "Incomplete", "Complete", "Unknown"] if lang == 'English' else ["미투여", "미완료", "완료", "모름"][x]),
-    'sterd': st.selectbox("Steroid Type" if lang == 'English' else "스테로이드 약제", [0, 1, 2, 3, 4], format_func=lambda x: ["None", "Dexa", "Beta", "Dexa+Beta", "Unknown"] if lang == 'English' else ["미투여", "Dexa", "Beta", "Dexa+Beta", "모름"][x]),
-    'atbyn': st.selectbox("Antibiotics" if lang == 'English' else "항생제 사용", [1, 2], format_func=lambda x: ["No", "Yes"] if lang == 'English' else ["없음", "있음"][x-1]),
-    'delm': st.selectbox("Delivery Mode" if lang == 'English' else "분만 방식", [1, 2], format_func=lambda x: ["Vaginal", "Cesarean"] if lang == 'English' else ["질식분만", "제왕절개"][x-1])
+    'mage': st.number_input("산모 나이", 15, 99, 30),
+    'gran': st.number_input("임신력", 0, 10, 0),
+    'parn': st.number_input("출산력", 0, 10, 0),
+    'amni': st.selectbox("양수량", [1, 2, 3, 4], format_func=lambda x: ["정상", "과소", "과다", "모름"][x-1]),
+    'mulg': st.selectbox("다태 정보", [1, 2, 3, 4], format_func=lambda x: ["Singleton", "Twin", "Triplet", "Quad 이상"][x-1]),
+    'bir': st.selectbox("출생 순서", [0, 1, 2, 3, 4], format_func=lambda x: ["단태", "1st", "2nd", "3rd", "4th 이상"][x]),
+    'prep': st.selectbox("임신 과정", [1, 2], format_func=lambda x: ["자연임신", "IVF"][x-1]),
+    'dm': st.selectbox("당뇨", [1, 2, 3], format_func=lambda x: ["없음", "GDM", "Overt DM"][x-1]),
+    'htn': st.selectbox("고혈압", [1, 2, 3], format_func=lambda x: ["없음", "PIH", "Chronic HTN"][x-1]),
+    'chor': st.selectbox("융모양막염", [1, 2, 3], format_func=lambda x: ["없음", "있음", "모름"][x-1]),
+    'prom': st.selectbox("조기 양막 파열", [1, 2, 3], format_func=lambda x: ["없음", "있음", "모름"][x-1]),
+    'ster': st.selectbox("스테로이드 사용", [1, 2, 3], format_func=lambda x: ["없음", "있음", "모름"][x-1]),
+    'sterp': st.selectbox("스테로이드 완료 여부", [0, 1, 2, 3], format_func=lambda x: ["미투여", "미완료", "완료", "모름"][x]),
+    'sterd': st.selectbox("스테로이드 약제", [0, 1, 2, 3, 4], format_func=lambda x: ["미투여", "Dexa", "Beta", "Dexa+Beta", "모름"][x]),
+    'atbyn': st.selectbox("항생제 사용", [1, 2], format_func=lambda x: ["없음", "있음"][x-1]),
+    'delm': st.selectbox("분만 방식", [1, 2], format_func=lambda x: ["질식분만", "제왕절개"][x-1])
 }
 
-values = [inputs.get(col, None) for col in x_columns if col in inputs] + [gad, sex, bwei]
-new_X_data = pd.DataFrame([values], columns=x_columns)
+# 입력 정리
+data_values = [inputs[col] for col in x_columns if col in inputs] + [gad, sex, bwei]
+new_X_data = pd.DataFrame([data_values], columns=x_columns)
 
-patient_id = st.text_input("Patient ID (for download)" if lang == 'English' else "환자 식별자 (파일명)", max_chars=20)
+# 환자 식별자
+patient_id = st.text_input("환자 식별자 (예: 등록번호)", max_chars=20)
 
+
+# 예측 실행
 if st.button("Run Prediction" if lang == 'English' else "예측 실행"):
     results = []
     for y_col in y_columns:
