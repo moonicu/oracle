@@ -29,6 +29,10 @@ y_columns = ['resu', 'resuo', 'resup', 'resui', 'resuh', 'resue', 'resuc', 'rds'
 threshold_df = pd.read_csv('model_thresholds.csv')
 thresh_map = threshold_df.set_index(['target', 'model'])['threshold'].to_dict()
 
+# 그룹 구분
+resuscitation_targets = ['resu', 'resuo', 'resup', 'resui', 'resuh', 'resue', 'resuc', 'sft', 'sftw']
+complication_targets = [y for y in y_columns if y not in resuscitation_targets]
+
 # 입력 항목
 def get_selectbox(label_kr, label_en, options, labels_kr, labels_en):
     label = label_en if lang == 'English' else label_kr
@@ -67,6 +71,7 @@ inputs = {
     'bwei': bwei
 }
 
+data_values = [inputs[col] for col in x_columns if col in inputs] + [gad, sex, bwei]
 new_X_data = pd.DataFrame([[inputs[col] for col in x_columns]], columns=x_columns)
 
 # 환자 식별자
@@ -88,7 +93,7 @@ if st.button("예측 실행" if lang == '한국어' else "Run Prediction"):
         return best_models
 
     models = load_best_models()
-    results = []
+    predictions = {}
     for y_col in y_columns:
         for model_name in ['LightGBM', 'XGBoost', 'RandomForest']:
             model_key = (y_col, model_name)
@@ -98,19 +103,23 @@ if st.button("예측 실행" if lang == '한국어' else "Run Prediction"):
                     prob = model.predict_proba(new_X_data)[0, 1]
                     threshold = thresh_map.get((y_col, model_name), 0.5)
                     mark = "★" if prob >= threshold else ""
-                    results.append({
-                        'Target': y_col,
-                        'Model': model_name,
-                        'Probability (%)': f"{prob*100:.2f}%",
-                        'Above Threshold': mark
-                    })
+                    predictions[y_col] = {'Probability (%)': f"{prob*100:.2f}%", 'Flag': mark}
+                    break
                 except:
                     continue
 
-    result_df = pd.DataFrame(results)
-    st.dataframe(result_df)
+    resuscitation_targets = ['resu', 'resuo', 'resup', 'resui', 'resuh', 'resue', 'resuc', 'sft', 'sftw']
+    complication_targets = [y for y in y_columns if y not in resuscitation_targets]
 
-    # 결과 텍스트 다운로드
+    resus_df = pd.DataFrame.from_dict({k: v for k, v in predictions.items() if k in resuscitation_targets}, orient='index')
+    comp_df = pd.DataFrame.from_dict({k: v for k, v in predictions.items() if k in complication_targets}, orient='index')
+
+    st.subheader("* 신생아 소생술 관련 예측" if lang == '한국어' else "* Resuscitation Predictions")
+    st.dataframe(resus_df)
+
+    st.subheader("* 미숙아 합병증 및 예후 예측" if lang == '한국어' else "* Complication Predictions")
+    st.dataframe(comp_df)
+
     if patient_id:
         output = io.StringIO()
         output.write(f"Patient ID: {patient_id}\nDate: {datetime.today().strftime('%Y-%m-%d')}\n\n")
@@ -118,7 +127,10 @@ if st.button("예측 실행" if lang == '한국어' else "Run Prediction"):
         for col in display_columns:
             output.write(f"{col}: {inputs.get(col, '')}\n")
         output.write("\n[예측 결과 / Prediction Results]\n")
-        output.write(result_df.to_string(index=False))
+        output.write("[Resuscitation Predictions]\n")
+        output.write(resus_df.to_string())
+        output.write("\n\n[Complication Predictions]\n")
+        output.write(comp_df.to_string())
 
         st.download_button(
             label="결과 TXT 다운로드" if lang == '한국어' else "Download Results TXT",
