@@ -26,6 +26,29 @@ y_columns = ['resu', 'resuo', 'resup', 'resui', 'resuh', 'resue', 'resuc', 'rds'
              'als', 'mph', 'ph', 'bpdyn', 'bpdm', 'pdad', 'acl', 'lbp', 'ivh2', 'ivh3', 'pvl', 'seps', 
              'ntet', 'pmio', 'eythtran', 'deathyn','supyn']
 
+# 이름 매핑
+y_display_ko = {
+    'resu': '초기 소생술 필요 유무', 'resuo': '초기 소생술 산소', 'resup': '초기 소생술 양압 환기', 'resui': '초기 소생술 기도 삽관',
+    'resuh': '초기 소생술 심장마사지', 'resue': '초기 소생술 Epinephrine', 'resuc': '초기 소생술 CPAP',
+    'rds': '신생아 호흡곤란증후군', 'sft': '폐표면활성제 사용', 'sftw': '폐활성제 출생 즉시 사용',
+    'als': '공기누출증후군', 'mph': '대량 폐출혈', 'ph': '폐동맥 고혈압', 'bpdyn': '기관지폐이형성증 여부(≥mild BPD)',
+    'bpdm': '중등증 기관지폐이형성증(≥moderate BPD)', 'pdad': 'PDA 약물 치료', 'acl': '동맥관 결찰술', 'lbp': '저혈압',
+    'ivh2': '뇌실내출혈 (Grade≥2)', 'ivh3': '중증 뇌실내출혈 (Grade≥3)', 'pvl': '백질연화증', 'seps': '패혈증',
+    'ntet': '괴사성 장염', 'pmio': '망막증 수술', 'eythtran': '적혈구 수혈', 'deathyn': 'NICU 입원중 사망', 'supyn': '퇴원시 보조 장비 필요'
+}
+
+y_display_en = {
+    'resu': 'Resuscitation needed', 'resuo': 'Oxygen', 'resup': 'PPV', 'resui': 'Intubation',
+    'resuh': 'Chest compression', 'resue': 'Epinephrine', 'resuc': 'CPAP',
+    'rds': 'RDS', 'sft': 'Surfactant use', 'sftw': 'Immediate surfactant',
+    'als': 'Air leak', 'mph': 'Massive pulmonary hemorrhage', 'ph': 'Pulmonary hypertension',
+    'bpdyn': '≥ Mild BPD', 'bpdm': '≥ Moderate BPD', 'pdad': 'PDA medication', 'acl': 'PDA ligation', 'lbp': 'Hypotension',
+    'ivh2': 'IVH (≥Grade 2)', 'ivh3': 'IVH (≥Grade 3)', 'pvl': 'PVL', 'seps': 'Sepsis',
+    'ntet': 'NEC', 'pmio': 'ROP surgery', 'eythtran': 'RBC transfusion', 'deathyn': 'In-hospital death', 'supyn': 'Discharge support'
+}
+
+y_display_names = y_display_ko if lang == '한국어' else y_display_en
+
 threshold_df = pd.read_csv('model_thresholds.csv')
 thresh_map = threshold_df.set_index(['target', 'model'])['threshold'].to_dict()
 
@@ -110,15 +133,18 @@ if st.button("예측 실행" if lang == '한국어' else "Run Prediction"):
 
     resuscitation_targets = ['resu', 'resuo', 'resup', 'resui', 'resuh', 'resue', 'resuc', 'sft', 'sftw']
     complication_targets = [y for y in y_columns if y not in resuscitation_targets]
-
+  
     resus_df = pd.DataFrame.from_dict({k: v for k, v in predictions.items() if k in resuscitation_targets}, orient='index')
     comp_df = pd.DataFrame.from_dict({k: v for k, v in predictions.items() if k in complication_targets}, orient='index')
 
+    resus_df.insert(0, '항목' if lang == '한국어' else 'Outcome', [y_display_names[k] for k in resus_df.index])
+    comp_df.insert(0, '항목' if lang == '한국어' else 'Outcome', [y_display_names[k] for k in comp_df.index])
+
     st.subheader("* 신생아 소생술 관련 예측" if lang == '한국어' else "* Resuscitation Predictions")
-    st.dataframe(resus_df)
+    st.dataframe(resus_df.reset_index(drop=True))
 
     st.subheader("* 미숙아 합병증 및 예후 예측" if lang == '한국어' else "* Complication Predictions")
-    st.dataframe(comp_df)
+    st.dataframe(comp_df.reset_index(drop=True))
 
     if patient_id:
         output = io.StringIO()
@@ -128,9 +154,9 @@ if st.button("예측 실행" if lang == '한국어' else "Run Prediction"):
             output.write(f"{col}: {inputs.get(col, '')}\n")
         output.write("\n[예측 결과 / Prediction Results]\n")
         output.write("[Resuscitation Predictions]\n")
-        output.write(resus_df.to_string())
+        output.write(resus_df.to_string(index=False))
         output.write("\n\n[Complication Predictions]\n")
-        output.write(comp_df.to_string())
+        output.write(comp_df.to_string(index=False))
 
         st.download_button(
             label="결과 TXT 다운로드" if lang == '한국어' else "Download Results TXT",
