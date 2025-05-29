@@ -96,7 +96,7 @@ data_values = [inputs[col] for col in x_columns if col in inputs] + [gad, sex, b
 new_X_data = pd.DataFrame([[inputs[col] for col in x_columns]], columns=x_columns)
 
 # 환자 식별자
-patient_id = st.text_input("환자 식별자 (예: 등록번호)" if lang == '한국어' else "Patient ID (for download)", max_chars=20)
+patient_id = st.text_input("환자 등록번호 (저장시 파일명)" if lang == '한국어' else "Patient ID (for download)", max_chars=20)
 
 # 예측 실행 및 결과 시각화
 if st.button("예측 실행" if lang == '한국어' else "Run Prediction"):
