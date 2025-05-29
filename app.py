@@ -10,9 +10,6 @@ model_save_dir = 'saved_models'
 # 언어 선택
 lang = st.sidebar.radio("언어 / Language", ['한국어', 'English'])
 
-# 전체 화면 넓게 설정
-st.set_page_config(layout="wide")
-
 # 변수 목록
 x_columns = ['mage', 'gran', 'parn', 'amni', 'mulg', 'bir', 'prep', 'dm', 'htn', 'chor',
              'prom', 'ster', 'sterp', 'sterd', 'atbyn', 'delm', 'gad', 'sex', 'bwei']
