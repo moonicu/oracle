@@ -7,8 +7,6 @@ from datetime import datetime
 
 model_save_dir = 'saved_models'
 
-# 전체 화면 넓게 설정
-st.set_page_config(layout="wide")
 
 # 언어 선택
 lang = st.sidebar.radio("언어 / Language", ['한국어', 'English'])
