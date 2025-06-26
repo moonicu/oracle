@@ -20,10 +20,12 @@ display_columns = ['gaw', 'gawd', 'gad', 'bwei', 'sex',
                    'ster', 'sterp', 'sterd', 'atbyn', 'delm']
 
 # 5% 미만 제외 - 27개
-y_columns = ['resu', 'resuo', 'resup', 'resui', 'resuh', 'resue', 'resuc', 'rds', 'sft', 'sftw',
-             'als', 'mph', 'ph', 'bpdyn', 'bpdm', 'pdad', 'acl', 'lbp', 'ivh2', 'ivh3', 'pvl', 'seps', 
-             'ntet', 'pmio', 'eythtran', 'deathyn','supyn']
-
+y_columns = [
+    'resu', 'resuo', 'resup', 'resui', 'resuh', 'resue', 'resuc', 'rds', 'sft', 'sftw',
+    'als', 'mph', 'ph', 'bpdyn', 'bpdm', 'pdad', 'acl', 'lbp', 'ivh2', 'ivh3', 'pvl', 'seps', 
+    'ntet', 'pmio', 'eythtran', 'deathyn', 'supyn',
+    'death7', 'death14', 'death30', 'death60'  # ✅ 추가됨
+]
 # 이름 매핑
 y_display_ko = {
     'resu': '초기 소생술 필요 유무', 'resuo': '초기 소생술 산소', 'resup': '초기 소생술 양압 환기', 'resui': '초기 소생술 기도 삽관',
@@ -44,6 +46,16 @@ y_display_en = {
     'ivh2': 'IVH (≥Grade 2)', 'ivh3': 'IVH (≥Grade 3)', 'pvl': 'PVL', 'seps': 'Sepsis',
     'ntet': 'NEC', 'pmio': 'ROP surgery', 'eythtran': 'RBC transfusion', 'deathyn': 'In-hospital death', 'supyn': 'Discharge support'
 }
+
+y_display_ko.update({
+    'death7': '사망 (7일 이내)', 'death14': '사망 (14일 이내)',
+    'death30': '사망 (30일 이내)', 'death60': '사망 (60일 이내)'
+})
+
+y_display_en.update({
+    'death7': 'Death within 7 days', 'death14': 'Death within 14 days',
+    'death30': 'Death within 30 days', 'death60': 'Death within 60 days'
+})
 
 y_display_names = y_display_ko if lang == '한국어' else y_display_en
 
